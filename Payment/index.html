@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment Platform</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Payment Platform</h1>
+    <p>Total Money: <span id="totalMoney">0</span></p>
+    <div>
+        <label for="addMoney">Add Money:</label>
+        <input type="number" id="addMoney" min="0">
+        <button onclick="addMoney()">Add</button>
+    </div>
+    <div>
+        <label for="withdrawMoney">Withdraw Money:</label>
+        <input type="number" id="withdrawMoney" min="0">
+        <button onclick="withdrawMoney()">Withdraw</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.3/dist/web3.min.js"></script>
+    <script type="text/javascript">
+        // Define the contract ABI
+        const contractABI = [
+            // Your contract ABI here
+            {
+                "inputs": [
+                    {
+                        "internalType": "int256",
+                        "name": "amt",
+                        "type": "int256"
+                    }
+                ],
+                "name": "deposit",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "int256",
+                        "name": "amt",
+                        "type": "int256"
+                    }
+                ],
+                "name": "withdrow",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getBalance",
+                "outputs": [
+                    {
+                        "internalType": "int256",
+                        "name": "",
+                        "type": "int256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        // Define the contract address
+        const contractAddress = '0x2f142E35F9ca857754ab1C68165389e88Cb5Ae1d';
+
+        // Connect to the Ethereum node
+        const web3 = new Web3(Web3.givenProvider || 'http://localhost:8545');
+
+        // Define the contract instance
+        const contract = new web3.eth.Contract(contractABI, contractAddress);
+
+        // Function to add money using the contract
+        async function addMoney() {
+            let addMoney = parseInt(document.getElementById('addMoney').value); // Convert input to integer
+
+            // Prompt the user to connect their wallet and select an account
+            await connectWallet();
+
+            // Call the contract function to add money
+            try {
+                // Ensure that web3.eth.defaultAccount is set
+                if (!web3.eth.defaultAccount) {
+                    throw new Error('No Ethereum account selected');
+                }
+
+                await contract.methods.deposit(addMoney).send({ from: web3.eth.defaultAccount });
+                // Update the totalMoney displayed on the webpage
+                totalMoney += addMoney;
+                document.getElementById('totalMoney').innerText = totalMoney;
+                document.getElementById('addMoney').value = '';
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Transaction failed: ' + error.message);
+            }
+        }
+
+        // Function to withdraw money using the contract
+        async function withdrawMoney() {
+            let withdrawMoney = parseInt(document.getElementById('withdrawMoney').value); // Convert input to integer
+
+            // Prompt the user to connect their wallet and select an account
+            await connectWallet();
+
+            // Call the contract function to withdraw money
+            try {
+                // Ensure that web3.eth.defaultAccount is set
+                if (!web3.eth.defaultAccount) {
+                    throw new Error('No Ethereum account selected');
+                }
+
+                await contract.methods.withdrow(withdrawMoney).send({ from: web3.eth.defaultAccount });
+                // Update the totalMoney displayed on the webpage
+                totalMoney -= withdrawMoney;
+                document.getElementById('totalMoney').innerText = totalMoney;
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Transaction failed: ' + error.message);
+            }
+            document.getElementById('withdrawMoney').value = '';
+        }
+
+        // Function to prompt the user to connect their wallet
+        async function connectWallet() {
+            if (window.ethereum) {
+                try {
+                    await window.ethereum.enable();
+                    // Set web3.eth.defaultAccount to the selected account
+                    web3.eth.defaultAccount = (await web3.eth.getAccounts())[0];
+                } catch (error) {
+                    console.error('Error connecting wallet:', error);
+                    alert('Failed to connect wallet: ' + error.message);
+                }
+            } else {
+                console.error('No wallet detected');
+                alert('Please install MetaMask or another Ethereum wallet extension');
+            }
+        }
+
+        // Initialize totalMoney by calling a view function of your contract
+        async function initializeTotalMoney() {
+            try {
+                totalMoney = parseInt(await contract.methods.getBalance().call());
+                document.getElementById('totalMoney').innerText = totalMoney;
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to fetch balance');
+            }
+        }
+
+        window.onload = initializeTotalMoney;
+    </script>
+</body>
+</html>
